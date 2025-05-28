@@ -1,7 +1,16 @@
+import { useEffect } from 'react'
 import Head from 'next/head'
 import '../styles/globals.css'
 
 export default function App({ Component, pageProps }) {
+  useEffect(() => {
+    if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        window.location.reload()
+      })
+    }
+  }, [])
+
   return (
     <>
       <Head>
