@@ -1,17 +1,23 @@
-import { useState } from "react";
-import Cabecalho from "../components/Cabecalho";
-import DiaRegistro from "../components/DiaRegistro";
+import { useEffect } from "react"
+import { useRouter } from "next/router"
+import { getAuth, onAuthStateChanged } from "firebase/auth"
+import { app } from "../firebase"
 
 export default function Home() {
-  // Data de hoje para passar para o componente de registro
-  const hoje = new Date();
+  const router = useRouter()
 
-  return (
-    <main className="min-h-screen bg-gray-50 p-6">
-      <Cabecalho />
+  useEffect(() => {
+    const auth = getAuth(app)
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (!user) {
+        router.push("/login")
+      } else {
+        router.push("/dashboard") // ou qualquer tela principal para usuários logados
+      }
+    })
 
-      <h1 className="text-2xl font-bold mb-4">Registro do Dia</h1>
-      <DiaRegistro data={hoje} />
-    </main>
-  );
+    return () => unsubscribe()
+  }, [])
+
+  return null // evita exibir conteúdo temporário
 }
