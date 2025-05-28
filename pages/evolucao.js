@@ -1,5 +1,3 @@
-// pages/evolucao.js — Evolução em formato de tabela com checkmarks
-
 import { useEffect, useState } from 'react'
 import { getAuth, onAuthStateChanged } from 'firebase/auth'
 import {
@@ -12,11 +10,13 @@ import {
 } from 'firebase/firestore'
 import app from '../firebase'
 import { format, startOfWeek, endOfWeek } from 'date-fns'
+import { useRouter } from 'next/router'
 
 export default function Evolucao() {
   const [dados, setDados] = useState([])
   const auth = getAuth(app)
   const db = getFirestore(app)
+  const router = useRouter()
 
   useEffect(() => {
     onAuthStateChanged(auth, async (user) => {
@@ -53,6 +53,10 @@ export default function Evolucao() {
   return (
     <main className="p-6">
       <div className="w-full max-w-md mx-auto bg-white rounded-xl shadow p-4">
+        <button onClick={() => router.back()} className="text-sm text-gray-500 hover:underline mb-3">
+          ← Voltar
+        </button>
+
         <h2 className="text-lg font-bold mb-3">Sua Evolução</h2>
         <table className="w-full text-sm text-center border-separate border-spacing-y-2">
           <thead className="text-gray-600">

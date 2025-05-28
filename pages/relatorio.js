@@ -57,6 +57,10 @@ export default function Relatorio() {
   return (
     <div className="min-h-screen bg-[#f9f9f9] p-4">
       <div className="max-w-md mx-auto space-y-6">
+        <button onClick={() => router.back()} className="text-sm text-gray-500 hover:underline">
+          ← Voltar
+        </button>
+
         <h1 className="text-2xl font-bold text-gray-800 text-center">
           Relatório da Noite
         </h1>
