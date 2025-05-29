@@ -79,9 +79,9 @@ export default function Dashboard() {
 
             const messaging = (await import('firebase/messaging')).getMessaging(app);
             const token = await getToken(messaging, {
-              vapidKey: "BPIekm6BlPTodXBSD2t0a-vXJYns4LKCvZ6QHDq0Cc-yEk_ifbpTaYTmALJqpQbB9DoaivxLaNenhKXGl7d0W9F0"
-            });
-
+  vapidKey: "BPIekm6BIpTodXBSD2t0a-vXJYnS4LKCvz6QHDqOC-yEk_ifbpTaYTmALJqpQpB9DoaivxLaNenKhXGI7d0W9F0",
+  serviceWorkerRegistration: await navigator.serviceWorker.ready
+});
             if (token) {
               console.log("Token salvo:", token);
               await setDoc(doc(db, 'tokens', user.uid), {
