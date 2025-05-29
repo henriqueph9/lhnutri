@@ -9,8 +9,10 @@ import {
   getDoc,
   query,
   where,
-  Timestamp
+  Timestamp,
+  setDoc
 } from 'firebase/firestore'
+import { getToken, onMessage } from 'firebase/messaging'
 import app from '../firebase'
 import {
   ClipboardList,
@@ -47,102 +49,143 @@ export default function Dashboard() {
   }
 
   useEffect(() => {
+    console.log("DASHBOARD MONTADO");
+
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
-        setUserId(user.uid)
-        const docRef = doc(db, 'usuarios', user.uid)
-        const snap = await getDoc(docRef)
+        console.log("Usuário autenticado:", user.uid);
+        setUserId(user.uid);
+
+        const docRef = doc(db, 'usuarios', user.uid);
+        const snap = await getDoc(docRef);
         if (snap.exists()) {
-          const data = snap.data()
-          setNome(data.nome ? capitalizarNome(data.nome) : 'Paciente')
+          const data = snap.data();
+          setNome(data.nome ? capitalizarNome(data.nome) : 'Paciente');
         } else {
-          setNome('Paciente')
+          setNome('Paciente');
         }
 
-        setMotivacao(frases[Math.floor(Math.random() * frases.length)])
-        buscarChecklists(user.uid)
-        buscarChecklistHoje(user.uid)
-        buscarRelatorioHoje(user.uid)
+        setMotivacao(frases[Math.floor(Math.random() * frases.length)]);
+        buscarChecklists(user.uid);
+        buscarChecklistHoje(user.uid);
+        buscarRelatorioHoje(user.uid);
+
+        try {
+          console.log("Solicitando permissão de notificação...");
+          const permission = await Notification.requestPermission();
+
+          if (permission === 'granted') {
+            console.log("Permissão concedida. Buscando token...");
+
+            const messaging = (await import('firebase/messaging')).getMessaging(app);
+            const token = await getToken(messaging, {
+              vapidKey: "BPIekm6BlPTodXBSD2t0a-vXJYns4LKCvZ6QHDq0Cc-yEk_ifbpTaYTmALJqpQbB9DoaivxLaNenhKXGl7d0W9F0"
+            });
+
+            if (token) {
+              console.log("Token salvo:", token);
+              await setDoc(doc(db, 'tokens', user.uid), {
+                token,
+                uid: user.uid,
+                email: user.email || null,
+                nome: snap.data()?.nome || '',
+                createdAt: new Date()
+              });
+            } else {
+              console.warn("Token não foi gerado.");
+            }
+
+            onMessage(messaging, (payload) => {
+              const { title, body } = payload.notification;
+              alert(`${title}\n${body}`);
+            });
+          } else {
+            console.warn("Permissão de notificação negada.");
+          }
+        } catch (err) {
+          console.error("Erro ao configurar notificações:", err);
+        }
       } else {
-        router.push('/login')
+        router.push('/login');
       }
-    })
-    return () => unsubscribe()
-  }, [])
+    });
+
+    return () => unsubscribe();
+  }, []);
 
   const buscarChecklistHoje = async (uid) => {
-    const hoje = new Date()
-    const dataFormatada = format(hoje, 'yyyy-MM-dd')
-    const ref = doc(db, `usuarios/${uid}/checklists/${dataFormatada}`)
-    const snap = await getDoc(ref)
+    const hoje = new Date();
+    const dataFormatada = format(hoje, 'yyyy-MM-dd');
+    const ref = doc(db, `usuarios/${uid}/checklists/${dataFormatada}`);
+    const snap = await getDoc(ref);
     if (snap.exists()) {
-      setChecklistHoje(snap.data())
+      setChecklistHoje(snap.data());
     }
-  }
+  };
 
   const buscarChecklists = async (uid) => {
-    const hoje = new Date()
-    const inicioSemana = startOfWeek(hoje, { weekStartsOn: 1 })
-    const fimSemana = endOfWeek(hoje, { weekStartsOn: 1 })
+    const hoje = new Date();
+    const inicioSemana = startOfWeek(hoje, { weekStartsOn: 1 });
+    const fimSemana = endOfWeek(hoje, { weekStartsOn: 1 });
 
-    const checkRef = collection(db, `usuarios/${uid}/checklists`)
+    const checkRef = collection(db, `usuarios/${uid}/checklists`);
     const snap = await getDocs(
       query(
         checkRef,
         where('data', '>=', Timestamp.fromDate(inicioSemana)),
         where('data', '<=', Timestamp.fromDate(fimSemana))
       )
-    )
+    );
 
     let dieta = 0,
       treino = 0,
-      agua = 0
+      agua = 0;
     snap.forEach((doc) => {
-      const d = doc.data()
-      if (d.dieta) dieta++
-      if (d.treino) treino++
-      if (d.agua) agua++
-    })
+      const d = doc.data();
+      if (d.dieta) dieta++;
+      if (d.treino) treino++;
+      if (d.agua) agua++;
+    });
 
-    setProgresso({ dieta, treino, agua })
-  }
+    setProgresso({ dieta, treino, agua });
+  };
 
   const buscarRelatorioHoje = async (uid) => {
-    const hoje = new Date()
-    const inicioSemana = startOfWeek(hoje, { weekStartsOn: 1 })
-    const fimSemana = endOfWeek(hoje, { weekStartsOn: 1 })
+    const hoje = new Date();
+    const inicioSemana = startOfWeek(hoje, { weekStartsOn: 1 });
+    const fimSemana = endOfWeek(hoje, { weekStartsOn: 1 });
 
-    const ref = collection(db, `usuarios/${uid}/relatorios`)
+    const ref = collection(db, `usuarios/${uid}/relatorios`);
     const snap = await getDocs(
       query(
         ref,
         where('enviadoEm', '>=', Timestamp.fromDate(inicioSemana)),
         where('enviadoEm', '<=', Timestamp.fromDate(fimSemana))
       )
-    )
+    );
 
-    const hojeFormatado = format(hoje, 'dd/MM')
-    const lista = []
+    const hojeFormatado = format(hoje, 'dd/MM');
+    const lista = [];
 
     snap.forEach((doc) => {
-      const dados = doc.data()
-      const data = format(dados.enviadoEm.toDate(), 'dd/MM')
+      const dados = doc.data();
+      const data = format(dados.enviadoEm.toDate(), 'dd/MM');
       if (data === hojeFormatado) {
         lista.push({
           data,
           nota: dados.nota,
           agua: dados.agua,
           treinoExtra: dados.treinoExtra
-        })
+        });
       }
-    })
-    setRelatorios(lista)
-  }
+    });
+    setRelatorios(lista);
+  };
 
   const sair = async () => {
-    await signOut(auth)
-    router.push('/login')
-  }
+    await signOut(auth);
+    router.push('/login');
+  };
 
   const Card = ({ icon: Icon, title, description, onClick }) => (
     <div
@@ -157,7 +200,7 @@ export default function Dashboard() {
         {description && <p className="text-sm text-gray-500">{description}</p>}
       </div>
     </div>
-  )
+  );
 
   return (
     <main className="p-6">
@@ -215,7 +258,7 @@ export default function Dashboard() {
         ))}
       </div>
     </main>
-  )
+  );
 }
 
 function Progress({ title, value }) {
@@ -226,7 +269,7 @@ function Progress({ title, value }) {
       ? 'bg-orange-400'
       : title === 'Água'
       ? 'bg-blue-500'
-      : 'bg-gray-400'
+      : 'bg-gray-400';
 
   const Icon =
     title === 'Dieta'
@@ -235,7 +278,7 @@ function Progress({ title, value }) {
       ? Dumbbell
       : title === 'Água'
       ? Droplet
-      : null
+      : null;
 
   const corFundo =
     title === 'Dieta'
@@ -244,7 +287,7 @@ function Progress({ title, value }) {
       ? 'bg-orange-100 text-orange-500'
       : title === 'Água'
       ? 'bg-blue-100 text-blue-600'
-      : 'bg-gray-100 text-gray-600'
+      : 'bg-gray-100 text-gray-600';
 
   return (
     <div className="bg-white p-3 rounded-xl shadow-sm">
@@ -268,5 +311,5 @@ function Progress({ title, value }) {
         />
       </div>
     </div>
-  )
+  );
 }
