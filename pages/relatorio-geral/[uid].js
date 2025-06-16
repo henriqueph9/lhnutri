@@ -16,9 +16,17 @@ export default function RelatorioGeral() {
   const [anotacaoSalva, setAnotacaoSalva] = useState('')
   const [dataInicio, setDataInicio] = useState('')
   const [dataFim, setDataFim] = useState('')
+  const [acessoNegado, setAcessoNegado] = useState(false)
+
+  const UID_AUTORIZADO = '4lCFetDoQNTU4XtUubzwuR9VQFC2' // UID de henriqueph9@hotmail.com
 
   useEffect(() => {
     if (!uid) return
+
+    if (uid !== UID_AUTORIZADO) {
+      setAcessoNegado(true)
+      return
+    }
 
     const carregarDados = async () => {
       const userDoc = await getDocs(query(collection(db, 'usuarios')))
@@ -60,6 +68,14 @@ export default function RelatorioGeral() {
     carregarDados()
   }, [uid])
 
+  if (acessoNegado) {
+    return (
+      <div className="text-center text-red-600 font-bold text-xl mt-10">
+        ❌ Acesso negado. Você não tem permissão para visualizar este relatório.
+      </div>
+    )
+  }
+
   const salvarAnotacao = async () => {
     if (!uid) return
     try {
@@ -67,9 +83,9 @@ export default function RelatorioGeral() {
         relatorioGeralObs: anotacao
       }, { merge: true })
       setAnotacaoSalva(anotacao)
-      alert('Anotacao salva com sucesso ✅')
+      alert('Anotação salva com sucesso ✅')
     } catch (e) {
-      alert('Erro ao salvar anotacao ❌')
+      alert('Erro ao salvar anotação ❌')
     }
   }
 
