@@ -1,3 +1,29 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Estilos para impressão do bloco de gráficos */
+.grafico-relatorio {
+  display: flex;
+  justify-content: center;
+  gap: 40px;
+  margin-top: 20px;
+  flex-wrap: nowrap;
+  page-break-inside: avoid;
+}
+
+.grafico-item {
+  width: 150px;
+  text-align: center;
+}
+
+.grafico-item canvas {
+  width: 100px !important;
+  height: 100px !important;
+}
+
+
+
+
+
+
