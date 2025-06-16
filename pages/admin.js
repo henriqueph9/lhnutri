@@ -268,7 +268,7 @@ export default function AdminPage() {
               {user.nome}
               <button
                 className="ml-2 text-sm text-blue-600 underline hover:text-blue-800"
-                onClick={() => router.push(`/relatorio-geral/${user.uid}`)}
+                onClick={() => router.push(`/relatorio-geral/${usuario.uid}`)}
               >
                 📄 Relatório Geral
               </button>
