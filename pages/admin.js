@@ -1,4 +1,3 @@
-// adminPage.jsx
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/router'
 import Link from 'next/link'
@@ -11,7 +10,6 @@ import {
   orderBy,
   addDoc,
   serverTimestamp,
-  doc
 } from 'firebase/firestore'
 import { app } from '../firebase'
 import { format, addDays, subDays } from 'date-fns'
@@ -33,7 +31,6 @@ export default function AdminPage() {
     inativos7Dias: [],
   })
   const [usuariosMensagensEnviadas, setUsuariosMensagensEnviadas] = useState({})
-  const [cacheDiario, setCacheDiario] = useState({})
 
   const UID_DO_ADMIN = 'GGT2USGNN2QbzhaTaXTlhHZVro12'
   const dataTitulo = format(dataAtual, "EEEE, dd 'de' MMMM", { locale: ptBR })
@@ -42,41 +39,11 @@ export default function AdminPage() {
 
   const mensagensAutomatizadas = (primeiroNome, tipo) => {
     const mensagens = {
-      dieta: [
-        `Oi ${primeiroNome}! Vi que você não tem registrado a dieta nos últimos dias. Está precisando de ajuda ou está tudo corrido por aí?`,
-        `👀 Sumido(a) nos registros da dieta, hein ${primeiroNome}? Bora retomar!`,
-        `Tá tudo bem com a alimentação, ${primeiroNome}? Me chama se precisar!`,
-        `Você sabe o quanto a constância faz diferença, ${primeiroNome}. Vamos com tudo hoje?`,
-        `Ei ${primeiroNome}, não registrar a dieta pode ser sinal de que algo te atrapalhou. Vamos conversar?`
-      ],
-      agua: [
-        `💧 ${primeiroNome}, lembra de beber água! Estou aqui pra te lembrar disso!`,
-        `Alerta de deserto detectado! 😅 Não esquece de beber água, ${primeiroNome}.`,
-        `Vi que você está há alguns dias sem registrar água. Que tal fazer o desafio dos 2 litros hoje, ${primeiroNome}?`,
-        `Seu corpo agradece cada gole, ${primeiroNome}. Vamos melhorar isso hoje? 🚰`,
-        `Oi ${primeiroNome}! Só passando pra lembrar que sua hidratação importa — e muito!`
-      ],
-      treino: [
-        `Tudo certo por aí, ${primeiroNome}? Vi que você não treinou nos últimos dias. Posso ajudar com algo?`,
-        `🏋️‍♀️ Treino faz parte do plano! Mesmo que rápido, tenta colocar um movimento no dia de hoje, ${primeiroNome}!`,
-        `Às vezes a falta de treino vem do desânimo. Fala comigo se estiver precisando de uma forcinha, ${primeiroNome}!`,
-        `Treino parado = resultado travado. Volta com tudo hoje, ${primeiroNome}? 💪`,
-        `Ei ${primeiroNome}, bora colocar o corpo em movimento! Um pouco já é melhor que nada.`
-      ],
-      nota: [
-        `Percebi que suas notas estão baixas nos últimos dias, ${primeiroNome}... está tudo bem mesmo?`,
-        `Oi ${primeiroNome}, você anda desanimado(a)? Me chama pra conversar se quiser, estou aqui.`,
-        `As notas baixas podem mostrar que algo está te atrapalhando. Vamos tentar entender juntos, ${primeiroNome}?`,
-        `Quando precisar, me chama. Às vezes desabafar já ajuda a destravar, ${primeiroNome}!`,
-        `Você não está sozinho(a), ${primeiroNome}. Estou aqui pra te apoiar em qualquer fase.`
-      ],
-      inativo: [
-        `Sumido(a) do app, hein ${primeiroNome}? 😅 Está tudo certo por aí? Bora retomar!`,
-        `A constância é o que gera resultado. Ainda dá tempo de voltar com tudo, ${primeiroNome}!`,
-        `Oi ${primeiroNome}, senti sua falta por aqui! Me fala se algo aconteceu, posso ajudar.`,
-        `7 dias sem registros é bastante, ${primeiroNome}... vamos dar um restart juntos?`,
-        `Você não precisa fazer perfeito, ${primeiroNome}, só precisa continuar. Hoje é um bom dia pra recomeçar.`
-      ]
+      dieta: ['Dieta 1', 'Dieta 2'],
+      agua: ['Água 1', 'Água 2'],
+      treino: ['Treino 1', 'Treino 2'],
+      nota: ['Nota 1', 'Nota 2'],
+      inativo: ['Inativo 1', 'Inativo 2']
     }
     const grupo = mensagens[tipo] || []
     const index = Math.floor(Math.random() * grupo.length)
@@ -119,11 +86,7 @@ export default function AdminPage() {
       }
     }
 
-    if (totalEnviadas > 0) {
-      alert(`✅ ${totalEnviadas} mensagens enviadas com sucesso!`)
-    } else {
-      alert('⚠️ Nenhum paciente estava em alerta hoje.')
-    }
+    alert(`✅ ${totalEnviadas} mensagens enviadas com sucesso!`)
   }
 
   const mudarDia = (direcao) => {
@@ -232,11 +195,10 @@ export default function AdminPage() {
           <div key={idx} className="border rounded p-3 bg-white shadow-sm">
             <div className="font-semibold mb-1 flex justify-between items-center">
               {user.nome}
-              <Link
-                href={`/relatorio-geral/${user.uid}`}
-                className="ml-2 text-sm text-blue-600 underline hover:text-blue-800"
-              >
-                📄 Relatório Geral
+              <Link href={`/relatorio-geral/${user.uid}`}>
+                <a className="ml-2 text-sm text-blue-600 underline hover:text-blue-800">
+                  📄 Relatório Geral
+                </a>
               </Link>
             </div>
             <div className="flex flex-wrap gap-4 text-sm items-center">
