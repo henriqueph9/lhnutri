@@ -1,6 +1,7 @@
 // adminPage.jsx
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/router'
+import Link from 'next/link'
 import { getAuth } from 'firebase/auth'
 import {
   collection,
@@ -179,7 +180,6 @@ export default function AdminPage() {
         lista.push(user)
       }
 
-      // Lógica dos alertas
       const ultimos7 = checklists.slice(-7)
       const ultimosRel = relatorios.slice(-3)
 
@@ -227,51 +227,17 @@ export default function AdminPage() {
         <button className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 ml-auto" onClick={enviarMensagensTodosAlertas}>📤 Enviar mensagens automáticas</button>
       </div>
 
-      <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mb-6 rounded">
-        <p className="font-semibold mb-2">🚨 Alertas de Atenção:</p>
-        {[
-          { titulo: '👤 Pacientes com 3+ dias sem marcar dieta', lista: alertas.semDietaDias, tipo: 'dieta' },
-          { titulo: '💧 Sem registro de água por 3+ dias', lista: alertas.semAguaDias, tipo: 'agua' },
-          { titulo: '🏋️ Sem treino por 5+ dias', lista: alertas.semTreinoDias, tipo: 'treino' },
-          { titulo: '🛑 Nota abaixo de 7 por 2 dias seguidos', lista: alertas.notaBaixaSeq, tipo: 'nota' },
-          { titulo: '🔕 Sem registrar nada há mais de 7 dias', lista: alertas.inativos7Dias, tipo: 'inativo' },
-        ].map((item, idx) => (
-          <details key={idx} className="mb-2">
-            <summary className="cursor-pointer font-medium">
-              {item.titulo}: {item.lista.length}
-            </summary>
-            <ul className="ml-5 list-disc text-sm mt-1">
-              {item.lista.map((user, i) => (
-                <li key={i} className="flex justify-between items-center">
-                  <span>{user.nome}</span>
-                  {usuariosMensagensEnviadas[user.uid] ? (
-                    <span className="text-green-600 text-xs ml-2">✅ Enviada</span>
-                  ) : (
-                    <button
-                      onClick={() => enviarMensagemAutomatica(user.uid, user.nome, item.tipo)}
-                      className="text-blue-600 text-xs ml-2 underline"
-                    >
-                      📤 Enviar mensagem
-                    </button>
-                  )}
-                </li>
-              ))}
-            </ul>
-          </details>
-        ))}
-      </div>
-
       <div className="space-y-4">
         {usuarios.map((user, idx) => (
           <div key={idx} className="border rounded p-3 bg-white shadow-sm">
             <div className="font-semibold mb-1 flex justify-between items-center">
               {user.nome}
-              <button
+              <Link
+                href={`/relatorio-geral/${user.uid}`}
                 className="ml-2 text-sm text-blue-600 underline hover:text-blue-800"
-                onClick={() => router.push(`/relatorio-geral/${user.uid}`)}
               >
                 📄 Relatório Geral
-              </button>
+              </Link>
             </div>
             <div className="flex flex-wrap gap-4 text-sm items-center">
               <div>🥗 Dieta: {user.dietaHoje ? '✅' : '❌'}</div>
