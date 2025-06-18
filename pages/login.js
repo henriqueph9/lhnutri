@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
-import { signInWithEmailAndPassword } from "firebase/auth";
+import { signInWithEmailAndPassword, onAuthStateChanged } from "firebase/auth";
 import { auth } from "../firebase";
 
 export default function LoginPage() {
@@ -8,6 +8,24 @@ export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
   const [erro, setErro] = useState('');
+  const [loading, setLoading] = useState(true);
+
+  const UID_ADMIN = 'GGT2USGNN2QbzhaTaXTlhHZVro12';
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        if (user.uid === UID_ADMIN) {
+          router.push('/admin');
+        } else {
+          router.push('/dashboard');
+        }
+      } else {
+        setLoading(false);
+      }
+    });
+    return () => unsubscribe();
+  }, []);
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -17,7 +35,7 @@ export default function LoginPage() {
       const userCredential = await signInWithEmailAndPassword(auth, email, senha);
       const user = userCredential.user;
 
-      if (user.uid === 'GGT2USGNN2QbzhaTaXTlhHZVro12') {
+      if (user.uid === UID_ADMIN) {
         router.push('/admin');
       } else {
         router.push('/dashboard');
@@ -27,6 +45,8 @@ export default function LoginPage() {
       setErro('E-mail ou senha inválidos.');
     }
   };
+
+  if (loading) return <p className="text-center mt-20">Carregando...</p>;
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-white">
