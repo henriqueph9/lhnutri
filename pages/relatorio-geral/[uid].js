@@ -1,6 +1,7 @@
 import { useRouter } from 'next/router'
 import { useEffect, useState } from 'react'
 import { collection, getDocs, getFirestore, orderBy, query, doc, setDoc } from 'firebase/firestore'
+import { getAuth, onAuthStateChanged } from 'firebase/auth'
 import { app } from '../../firebase'
 import { format } from 'date-fns'
 import { Pie } from 'react-chartjs-2'
@@ -17,56 +18,58 @@ export default function RelatorioGeral() {
   const [dataInicio, setDataInicio] = useState('')
   const [dataFim, setDataFim] = useState('')
   const [acessoNegado, setAcessoNegado] = useState(false)
-
-  const UID_AUTORIZADO = '4lCFetDoQNTU4XtUubzwuR9VQFC2' // UID de henriqueph9@hotmail.com
+  const UID_AUTORIZADO = '4lCFetDoQNTU4XtUubzwuR9VQFC2'
 
   useEffect(() => {
-    if (!uid) return
+    const auth = getAuth(app);
+    onAuthStateChanged(auth, (user) => {
+      if (!user || user.uid !== UID_AUTORIZADO) {
+        setAcessoNegado(true);
+      } else {
+        setAcessoNegado(false);
+        carregarDados();
+      }
+    });
+  }, []);
 
-    if (uid !== UID_AUTORIZADO) {
-      setAcessoNegado(true)
-      return
+  const carregarDados = async () => {
+    if (!uid) return;
+
+    const userDoc = await getDocs(query(collection(db, 'usuarios')))
+    const userData = userDoc.docs.find(doc => doc.id === uid)?.data()
+    if (userData) {
+      setNome(userData.nome)
+      setAnotacaoSalva(userData.relatorioGeralObs || '')
+      setAnotacao(userData.relatorioGeralObs || '')
     }
 
-    const carregarDados = async () => {
-      const userDoc = await getDocs(query(collection(db, 'usuarios')))
-      const userData = userDoc.docs.find(doc => doc.id === uid)?.data()
-      if (userData) {
-        setNome(userData.nome)
-        setAnotacaoSalva(userData.relatorioGeralObs || '')
-        setAnotacao(userData.relatorioGeralObs || '')
-      }
+    const checklistsSnap = await getDocs(query(collection(db, `usuarios/${uid}/checklists`), orderBy('data')))
+    const relatoriosSnap = await getDocs(query(collection(db, `usuarios/${uid}/relatorios`), orderBy('data')))
 
-      const checklistsSnap = await getDocs(query(collection(db, `usuarios/${uid}/checklists`), orderBy('data')))
-      const relatoriosSnap = await getDocs(query(collection(db, `usuarios/${uid}/relatorios`), orderBy('data')))
+    const checklists = checklistsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+    const relatorios = relatoriosSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }))
 
-      const checklists = checklistsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }))
-      const relatorios = relatoriosSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }))
-
-      if (checklists.length > 0) {
-        setDataInicio(format(new Date(checklists[0].id), 'dd/MM/yyyy'))
-        setDataFim(format(new Date(checklists[checklists.length - 1].id), 'dd/MM/yyyy'))
-      }
-
-      const combinados = checklists.map(c => {
-        const rel = relatorios.find(r => r.id === c.id) || {}
-        return {
-          data: c.id,
-          dieta: c.dieta,
-          treino: c.treino,
-          agua: c.agua,
-          observacao: c.observacao || '',
-          nota: rel.nota ?? '-',
-          aguaTotal: rel.agua ?? '-',
-          extra: rel.treinoExtra ?? false
-        }
-      })
-
-      setRegistros(combinados)
+    if (checklists.length > 0) {
+      setDataInicio(format(new Date(checklists[0].id), 'dd/MM/yyyy'))
+      setDataFim(format(new Date(checklists[checklists.length - 1].id), 'dd/MM/yyyy'))
     }
 
-    carregarDados()
-  }, [uid])
+    const combinados = checklists.map(c => {
+      const rel = relatorios.find(r => r.id === c.id) || {}
+      return {
+        data: c.id,
+        dieta: c.dieta,
+        treino: c.treino,
+        agua: c.agua,
+        observacao: c.observacao || '',
+        nota: rel.nota ?? '-',
+        aguaTotal: rel.agua ?? '-',
+        extra: rel.treinoExtra ?? false
+      }
+    })
+
+    setRegistros(combinados)
+  }
 
   if (acessoNegado) {
     return (
