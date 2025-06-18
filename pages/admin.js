@@ -185,10 +185,24 @@ export default function AdminPage() {
       <h2 className="text-lg mb-6">{dataTitulo}</h2>
 
       <div className="flex justify-between mb-4 gap-4">
-        <button className="bg-gray-300 px-4 py-2 rounded hover:bg-gray-400" onClick={() => mudarDia('anterior')}>Dia Anterior</button>
-        <button className="bg-gray-300 px-4 py-2 rounded hover:bg-gray-400" onClick={() => mudarDia('proximo')}>Próximo Dia</button>
-        <button className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 ml-auto" onClick={enviarMensagensTodosAlertas}>📤 Enviar mensagens automáticas</button>
-      </div>
+  <button className="bg-gray-300 px-4 py-2 rounded hover:bg-gray-400" onClick={() => mudarDia('anterior')}>Dia Anterior</button>
+  <button className="bg-gray-300 px-4 py-2 rounded hover:bg-gray-400" onClick={() => mudarDia('proximo')}>Próximo Dia</button>
+  <button className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 ml-auto" onClick={enviarMensagensTodosAlertas}>
+    📤 Enviar mensagens automáticas
+  </button>
+</div>
+
+<div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mb-6">
+  <p className="font-bold">🚨 Alertas de Atenção:</p>
+  <ul className="mt-2 space-y-1 text-sm">
+    <li>▶️ Pacientes com 3+ dias sem marcar dieta: {alertas.semDietaDias.length}</li>
+    <li>💧 Sem registro de água por 3+ dias: {alertas.semAguaDias.length}</li>
+    <li>🏋️‍♂️ Sem treino por 5+ dias: {alertas.semTreinoDias.length}</li>
+    <li>🔴 Nota abaixo de 7 por 2 dias seguidos: {alertas.notaBaixaSeq.length}</li>
+    <li>⏰ Sem registrar nada há mais de 7 dias: {alertas.inativos7Dias.length}</li>
+  </ul>
+</div>
+
 
       <div className="space-y-4">
         {usuarios.map((user, idx) => (
