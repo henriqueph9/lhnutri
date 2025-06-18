@@ -195,11 +195,13 @@ export default function AdminPage() {
           <div key={idx} className="border rounded p-3 bg-white shadow-sm">
             <div className="font-semibold mb-1 flex justify-between items-center">
               {user.nome}
-              <Link href={`/relatorio-geral/${user.uid}`}>
-                <a className="ml-2 text-sm text-blue-600 underline hover:text-blue-800">
-                  📄 Relatório Geral
-                </a>
-              </Link>
+              {user.uid && (
+                <Link href={`/relatorio-geral/${user.uid}`}>
+                  <button className="ml-2 text-sm text-blue-600 underline hover:text-blue-800">
+                    📄 Relatório Geral
+                  </button>
+                </Link>
+              )}
             </div>
             <div className="flex flex-wrap gap-4 text-sm items-center">
               <div>🥗 Dieta: {user.dietaHoje ? '✅' : '❌'}</div>
