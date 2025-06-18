@@ -11,6 +11,7 @@ export default function RelatorioGeral() {
   const router = useRouter()
   const { uid } = router.query
   const db = getFirestore(app)
+  const auth = getAuth(app)
   const [registros, setRegistros] = useState([])
   const [nome, setNome] = useState('')
   const [anotacao, setAnotacao] = useState('')
@@ -18,19 +19,18 @@ export default function RelatorioGeral() {
   const [dataInicio, setDataInicio] = useState('')
   const [dataFim, setDataFim] = useState('')
   const [acessoNegado, setAcessoNegado] = useState(false)
-  const UID_AUTORIZADO = '4lCFetDoQNTU4XtUubzwuR9VQFC2'
+  const UID_ADMIN = 'GGT2USGNN2QbzhaTaXTlhHZVro12'
 
   useEffect(() => {
-    const auth = getAuth(app);
     onAuthStateChanged(auth, (user) => {
-      if (!user || user.uid !== UID_AUTORIZADO) {
-        setAcessoNegado(true);
+      if (!user || user.uid !== UID_ADMIN) {
+        setAcessoNegado(true)
       } else {
-        setAcessoNegado(false);
-        carregarDados();
+        setAcessoNegado(false)
+        carregarDados()
       }
-    });
-  }, []);
+    })
+  }, [uid])
 
   const carregarDados = async () => {
     if (!uid) return;
