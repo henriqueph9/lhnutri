@@ -103,6 +103,21 @@ export default function Dashboard() {
     return () => unsubscribe()
   }, [])
 
+  const buscarMensagens = async (uid) => {
+    const adminUid = 'GGT2USGNN2QbzhaTaXTlhHZVro12'
+    const mensagensRef = collection(db, `mensagens/${adminUid}_${uid}/mensagens`)
+    const q = query(mensagensRef, orderBy('timestamp', 'desc'))
+    const snap = await getDocs(q)
+
+    const msgs = snap.docs.map(doc => ({
+      id: doc.id,
+      texto: doc.data().texto,
+      timestamp: doc.data().timestamp?.toDate()
+    }))
+
+    setNotificacoes(msgs)
+  }
+
   const buscarChecklistHoje = async (uid) => {
     const hoje = new Date()
     const dataFormatada = format(hoje, 'yyyy-MM-dd')
@@ -167,16 +182,6 @@ export default function Dashboard() {
       }
     })
     setRelatorios(lista)
-  }
-
-  const buscarMensagens = async (uid) => {
-    const mensagensRef = collection(db, `mensagens/GGT2USGNN2QbzhaTaXTlhHZVro12_${uid}/mensagens`)
-    const snap = await getDocs(query(mensagensRef, orderBy('timestamp', 'desc')))
-    const lista = snap.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    }))
-    setNotificacoes(lista)
   }
 
   const sair = async () => {
@@ -283,11 +288,9 @@ export default function Dashboard() {
               {notificacoes.map((n) => (
                 <li key={n.id} className="border p-2 rounded">
                   <p>{n.texto}</p>
-                  {n.timestamp?.toDate && (
-                    <small className="text-gray-400">
-                      {n.timestamp.toDate().toLocaleString('pt-BR')}
-                    </small>
-                  )}
+                  <small className="text-gray-400">
+                    {n.timestamp && new Date(n.timestamp).toLocaleString('pt-BR')}
+                  </small>
                 </li>
               ))}
             </ul>
