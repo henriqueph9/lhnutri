@@ -9,6 +9,7 @@ import {
   getDoc,
   query,
   where,
+  orderBy,
   Timestamp,
   setDoc
 } from 'firebase/firestore'
@@ -31,6 +32,7 @@ export default function Dashboard() {
   const [relatorios, setRelatorios] = useState([])
   const [userId, setUserId] = useState('')
   const [checklistHoje, setChecklistHoje] = useState(null)
+  const [notificacoes, setNotificacoes] = useState([])
   const router = useRouter()
   const auth = getAuth(app)
   const db = getFirestore(app)
@@ -49,143 +51,138 @@ export default function Dashboard() {
   }
 
   useEffect(() => {
-    console.log("DASHBOARD MONTADO");
-
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
-        console.log("Usuário autenticado:", user.uid);
-        setUserId(user.uid);
+        setUserId(user.uid)
 
-        const docRef = doc(db, 'usuarios', user.uid);
-        const snap = await getDoc(docRef);
+        const docRef = doc(db, 'usuarios', user.uid)
+        const snap = await getDoc(docRef)
         if (snap.exists()) {
-          const data = snap.data();
-          setNome(data.nome ? capitalizarNome(data.nome) : 'Paciente');
+          const data = snap.data()
+          setNome(data.nome ? capitalizarNome(data.nome) : 'Paciente')
         } else {
-          setNome('Paciente');
+          setNome('Paciente')
         }
 
-        setMotivacao(frases[Math.floor(Math.random() * frases.length)]);
-        buscarChecklists(user.uid);
-        buscarChecklistHoje(user.uid);
-        buscarRelatorioHoje(user.uid);
+        setMotivacao(frases[Math.floor(Math.random() * frases.length)])
+        buscarChecklists(user.uid)
+        buscarChecklistHoje(user.uid)
+        buscarRelatorioHoje(user.uid)
+        buscarMensagens(user.uid)
 
         try {
-          console.log("Solicitando permissão de notificação...");
-          const permission = await Notification.requestPermission();
-
+          const permission = await Notification.requestPermission()
           if (permission === 'granted') {
-            console.log("Permissão concedida. Buscando token...");
-
-            const messaging = (await import('firebase/messaging')).getMessaging(app);
+            const messaging = (await import('firebase/messaging')).getMessaging(app)
             const token = await getToken(messaging, {
-  vapidKey: "BPIekm6BIpTodXBSD2t0a-vXJYnS4LKCvz6QHDqOC-yEk_ifbpTaYTmALJqpQpB9DoaivxLaNenKhXGI7d0W9F0",
-  serviceWorkerRegistration: await navigator.serviceWorker.ready
-});
+              vapidKey:
+                'BPIekm6BIpTodXBSD2t0a-vXJYnS4LKCvz6QHDqOC-yEk_ifbpTaYTmALJqpQpB9DoaivxLaNenKhXGI7d0W9F0',
+              serviceWorkerRegistration: await navigator.serviceWorker.ready
+            })
             if (token) {
-              console.log("Token salvo:", token);
               await setDoc(doc(db, 'tokens', user.uid), {
                 token,
                 uid: user.uid,
                 email: user.email || null,
                 nome: snap.data()?.nome || '',
                 createdAt: new Date()
-              });
-            } else {
-              console.warn("Token não foi gerado.");
+              })
             }
-
             onMessage(messaging, (payload) => {
-              const { title, body } = payload.notification;
-              alert(`${title}\n${body}`);
-            });
-          } else {
-            console.warn("Permissão de notificação negada.");
+              const { title, body } = payload.notification
+              alert(`${title}\n${body}`)
+            })
           }
         } catch (err) {
-          console.error("Erro ao configurar notificações:", err);
+          console.error('Erro ao configurar notificações:', err)
         }
       } else {
-        router.push('/login');
+        router.push('/login')
       }
-    });
-
-    return () => unsubscribe();
-  }, []);
+    })
+    return () => unsubscribe()
+  }, [])
 
   const buscarChecklistHoje = async (uid) => {
-    const hoje = new Date();
-    const dataFormatada = format(hoje, 'yyyy-MM-dd');
-    const ref = doc(db, `usuarios/${uid}/checklists/${dataFormatada}`);
-    const snap = await getDoc(ref);
-    if (snap.exists()) {
-      setChecklistHoje(snap.data());
-    }
-  };
+    const hoje = new Date()
+    const dataFormatada = format(hoje, 'yyyy-MM-dd')
+    const ref = doc(db, `usuarios/${uid}/checklists/${dataFormatada}`)
+    const snap = await getDoc(ref)
+    if (snap.exists()) setChecklistHoje(snap.data())
+  }
 
   const buscarChecklists = async (uid) => {
-    const hoje = new Date();
-    const inicioSemana = startOfWeek(hoje, { weekStartsOn: 1 });
-    const fimSemana = endOfWeek(hoje, { weekStartsOn: 1 });
+    const hoje = new Date()
+    const inicioSemana = startOfWeek(hoje, { weekStartsOn: 1 })
+    const fimSemana = endOfWeek(hoje, { weekStartsOn: 1 })
 
-    const checkRef = collection(db, `usuarios/${uid}/checklists`);
+    const checkRef = collection(db, `usuarios/${uid}/checklists`)
     const snap = await getDocs(
       query(
         checkRef,
         where('data', '>=', Timestamp.fromDate(inicioSemana)),
         where('data', '<=', Timestamp.fromDate(fimSemana))
       )
-    );
+    )
 
     let dieta = 0,
       treino = 0,
-      agua = 0;
+      agua = 0
     snap.forEach((doc) => {
-      const d = doc.data();
-      if (d.dieta) dieta++;
-      if (d.treino) treino++;
-      if (d.agua) agua++;
-    });
-
-    setProgresso({ dieta, treino, agua });
-  };
+      const d = doc.data()
+      if (d.dieta) dieta++
+      if (d.treino) treino++
+      if (d.agua) agua++
+    })
+    setProgresso({ dieta, treino, agua })
+  }
 
   const buscarRelatorioHoje = async (uid) => {
-    const hoje = new Date();
-    const inicioSemana = startOfWeek(hoje, { weekStartsOn: 1 });
-    const fimSemana = endOfWeek(hoje, { weekStartsOn: 1 });
+    const hoje = new Date()
+    const inicioSemana = startOfWeek(hoje, { weekStartsOn: 1 })
+    const fimSemana = endOfWeek(hoje, { weekStartsOn: 1 })
 
-    const ref = collection(db, `usuarios/${uid}/relatorios`);
+    const ref = collection(db, `usuarios/${uid}/relatorios`)
     const snap = await getDocs(
       query(
         ref,
         where('enviadoEm', '>=', Timestamp.fromDate(inicioSemana)),
         where('enviadoEm', '<=', Timestamp.fromDate(fimSemana))
       )
-    );
+    )
 
-    const hojeFormatado = format(hoje, 'dd/MM');
-    const lista = [];
+    const hojeFormatado = format(hoje, 'dd/MM')
+    const lista = []
 
     snap.forEach((doc) => {
-      const dados = doc.data();
-      const data = format(dados.enviadoEm.toDate(), 'dd/MM');
+      const dados = doc.data()
+      const data = format(dados.enviadoEm.toDate(), 'dd/MM')
       if (data === hojeFormatado) {
         lista.push({
           data,
           nota: dados.nota,
           agua: dados.agua,
           treinoExtra: dados.treinoExtra
-        });
+        })
       }
-    });
-    setRelatorios(lista);
-  };
+    })
+    setRelatorios(lista)
+  }
+
+  const buscarMensagens = async (uid) => {
+    const mensagensRef = collection(db, `mensagens/GGT2USGNN2QbzhaTaXTlhHZVro12_${uid}/mensagens`)
+    const snap = await getDocs(query(mensagensRef, orderBy('timestamp', 'desc')))
+    const lista = snap.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }))
+    setNotificacoes(lista)
+  }
 
   const sair = async () => {
-    await signOut(auth);
-    router.push('/login');
-  };
+    await signOut(auth)
+    router.push('/login')
+  }
 
   const Card = ({ icon: Icon, title, description, onClick }) => (
     <div
@@ -200,7 +197,60 @@ export default function Dashboard() {
         {description && <p className="text-sm text-gray-500">{description}</p>}
       </div>
     </div>
-  );
+  )
+
+  const Progress = ({ title, value }) => {
+    const cor =
+      title === 'Dieta'
+        ? 'bg-green-600'
+        : title === 'Treino'
+        ? 'bg-orange-400'
+        : title === 'Água'
+        ? 'bg-blue-500'
+        : 'bg-gray-400'
+
+    const Icon =
+      title === 'Dieta'
+        ? Utensils
+        : title === 'Treino'
+        ? Dumbbell
+        : title === 'Água'
+        ? Droplet
+        : null
+
+    const corFundo =
+      title === 'Dieta'
+        ? 'bg-green-100 text-green-600'
+        : title === 'Treino'
+        ? 'bg-orange-100 text-orange-500'
+        : title === 'Água'
+        ? 'bg-blue-100 text-blue-600'
+        : 'bg-gray-100 text-gray-600'
+
+    return (
+      <div className="bg-white p-3 rounded-xl shadow-sm">
+        <div className="flex justify-between items-center mb-1">
+          <div className="flex items-center gap-2">
+            <div className={`p-2 rounded-full ${corFundo}`}>
+              {Icon && <Icon size={16} />}
+            </div>
+            <span className="text-sm font-semibold text-gray-700">
+              {title} ({value}/7)
+            </span>
+          </div>
+          <span className="text-sm text-gray-500 font-medium">
+            {String(value).padStart(2, '0')}
+          </span>
+        </div>
+        <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
+          <div
+            className={`h-2 ${cor} rounded-full transition-all duration-500 ease-in-out`}
+            style={{ width: `${(value / 7) * 100}%` }}
+          />
+        </div>
+      </div>
+    )
+  }
 
   return (
     <main className="p-6">
@@ -222,6 +272,26 @@ export default function Dashboard() {
           <Card icon={ClipboardList} title="Checklist Diário" description="Dieta · Treino · Água" onClick={() => router.push('/checklist')} />
           <Card icon={FileText} title="Relatório da Noite" description="Preencher às 21:00" onClick={() => router.push('/relatorio')} />
           <Card icon={LineChart} title="Evolução" onClick={() => router.push('/evolucao')} />
+        </div>
+
+        <div className="bg-white p-4 rounded shadow mb-4">
+          <h2 className="text-lg font-semibold mb-2">📢 Notificações</h2>
+          {notificacoes.length === 0 ? (
+            <p className="text-gray-500">Nenhuma nova notificação.</p>
+          ) : (
+            <ul className="space-y-2">
+              {notificacoes.map((n) => (
+                <li key={n.id} className="border p-2 rounded">
+                  <p>{n.texto}</p>
+                  {n.timestamp?.toDate && (
+                    <small className="text-gray-400">
+                      {n.timestamp.toDate().toLocaleString('pt-BR')}
+                    </small>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
 
         {checklistHoje && (
@@ -258,58 +328,5 @@ export default function Dashboard() {
         ))}
       </div>
     </main>
-  );
-}
-
-function Progress({ title, value }) {
-  const cor =
-    title === 'Dieta'
-      ? 'bg-green-600'
-      : title === 'Treino'
-      ? 'bg-orange-400'
-      : title === 'Água'
-      ? 'bg-blue-500'
-      : 'bg-gray-400';
-
-  const Icon =
-    title === 'Dieta'
-      ? Utensils
-      : title === 'Treino'
-      ? Dumbbell
-      : title === 'Água'
-      ? Droplet
-      : null;
-
-  const corFundo =
-    title === 'Dieta'
-      ? 'bg-green-100 text-green-600'
-      : title === 'Treino'
-      ? 'bg-orange-100 text-orange-500'
-      : title === 'Água'
-      ? 'bg-blue-100 text-blue-600'
-      : 'bg-gray-100 text-gray-600';
-
-  return (
-    <div className="bg-white p-3 rounded-xl shadow-sm">
-      <div className="flex justify-between items-center mb-1">
-        <div className="flex items-center gap-2">
-          <div className={`p-2 rounded-full ${corFundo}`}>
-            {Icon && <Icon size={16} />}
-          </div>
-          <span className="text-sm font-semibold text-gray-700">
-            {title} ({value}/7)
-          </span>
-        </div>
-        <span className="text-sm text-gray-500 font-medium">
-          {String(value).padStart(2, '0')}
-        </span>
-      </div>
-      <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
-        <div
-          className={`h-2 ${cor} rounded-full transition-all duration-500 ease-in-out`}
-          style={{ width: `${(value / 7) * 100}%` }}
-        />
-      </div>
-    </div>
-  );
+  )
 }

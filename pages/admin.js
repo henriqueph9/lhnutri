@@ -8,12 +8,11 @@ import {
   getFirestore,
   query,
   orderBy,
-  addDoc,
-  serverTimestamp,
 } from 'firebase/firestore'
 import { app } from '../firebase'
 import { format, addDays, subDays } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
+import { enviarMensagemAutomatica } from '../utils/enviarMensagem'
 
 export default function AdminPage() {
   const auth = getAuth(app)
@@ -34,39 +33,6 @@ export default function AdminPage() {
 
   const UID_DO_ADMIN = 'GGT2USGNN2QbzhaTaXTlhHZVro12'
   const dataTitulo = format(dataAtual, "EEEE, dd 'de' MMMM", { locale: ptBR })
-
-  const getPrimeiroNome = (nomeCompleto) => nomeCompleto?.split(' ')[0] || ''
-
-  const mensagensAutomatizadas = (primeiroNome, tipo) => {
-    const mensagens = {
-      dieta: ['Dieta 1', 'Dieta 2'],
-      agua: ['Água 1', 'Água 2'],
-      treino: ['Treino 1', 'Treino 2'],
-      nota: ['Nota 1', 'Nota 2'],
-      inativo: ['Inativo 1', 'Inativo 2']
-    }
-    const grupo = mensagens[tipo] || []
-    const index = Math.floor(Math.random() * grupo.length)
-    return grupo[index]
-  }
-
-  const enviarMensagemAutomatica = async (uid, nome, tipo) => {
-    const primeiroNome = getPrimeiroNome(nome)
-    const texto = mensagensAutomatizadas(primeiroNome, tipo)
-
-    try {
-      await addDoc(collection(db, `mensagens/${UID_DO_ADMIN}_${uid}/mensagens`), {
-        de: UID_DO_ADMIN,
-        texto,
-        timestamp: serverTimestamp()
-      })
-      setUsuariosMensagensEnviadas(prev => ({ ...prev, [uid]: true }))
-      return true
-    } catch (error) {
-      console.error("Erro ao enviar mensagem automática:", error)
-      return false
-    }
-  }
 
   const enviarMensagensTodosAlertas = async () => {
     const grupos = [
@@ -185,24 +151,21 @@ export default function AdminPage() {
       <h2 className="text-lg mb-6">{dataTitulo}</h2>
 
       <div className="flex justify-between mb-4 gap-4">
-  <button className="bg-gray-300 px-4 py-2 rounded hover:bg-gray-400" onClick={() => mudarDia('anterior')}>Dia Anterior</button>
-  <button className="bg-gray-300 px-4 py-2 rounded hover:bg-gray-400" onClick={() => mudarDia('proximo')}>Próximo Dia</button>
-  <button className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 ml-auto" onClick={enviarMensagensTodosAlertas}>
-    📤 Enviar mensagens automáticas
-  </button>
-</div>
+        <button className="bg-gray-300 px-4 py-2 rounded hover:bg-gray-400" onClick={() => mudarDia('anterior')}>Dia Anterior</button>
+        <button className="bg-gray-300 px-4 py-2 rounded hover:bg-gray-400" onClick={() => mudarDia('proximo')}>Próximo Dia</button>
+        <button className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 ml-auto" onClick={enviarMensagensTodosAlertas}>
+          📤 Enviar mensagens automáticas
+        </button>
+      </div>
 
-<div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mb-6">
-  <p className="font-bold">🚨 Alertas de Atenção:</p>
-  <ul className="mt-2 space-y-1 text-sm">
-    <li>▶️ Pacientes com 3+ dias sem marcar dieta: {alertas.semDietaDias.length}</li>
-    <li>💧 Sem registro de água por 3+ dias: {alertas.semAguaDias.length}</li>
-    <li>🏋️‍♂️ Sem treino por 5+ dias: {alertas.semTreinoDias.length}</li>
-    <li>🔴 Nota abaixo de 7 por 2 dias seguidos: {alertas.notaBaixaSeq.length}</li>
-    <li>⏰ Sem registrar nada há mais de 7 dias: {alertas.inativos7Dias.length}</li>
-  </ul>
-</div>
-
+      <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mb-6 rounded">
+        <p className="font-bold mb-2">🚨 Alertas de Atenção:</p>
+        <AlertaColapsavel titulo="▶️ Pacientes com 3+ dias sem marcar dieta" lista={alertas.semDietaDias} />
+        <AlertaColapsavel titulo="💧 Sem registro de água por 3+ dias" lista={alertas.semAguaDias} />
+        <AlertaColapsavel titulo="🏋️‍♂️ Sem treino por 5+ dias" lista={alertas.semTreinoDias} />
+        <AlertaColapsavel titulo="🔴 Nota abaixo de 7 por 2 dias seguidos" lista={alertas.notaBaixaSeq} />
+        <AlertaColapsavel titulo="⏰ Sem registrar nada há mais de 7 dias" lista={alertas.inativos7Dias} />
+      </div>
 
       <div className="space-y-4">
         {usuarios.map((user, idx) => (
@@ -231,6 +194,30 @@ export default function AdminPage() {
           </div>
         ))}
       </div>
+    </div>
+  )
+}
+
+function AlertaColapsavel({ titulo, lista }) {
+  const [aberto, setAberto] = useState(false)
+
+  return (
+    <div className="mb-2 border border-yellow-300 rounded">
+      <button
+        onClick={() => setAberto(!aberto)}
+        className="w-full text-left px-4 py-2 font-semibold bg-yellow-200 rounded-t flex justify-between items-center"
+      >
+        <span>{titulo}</span>
+        <span>{aberto ? '−' : '+'}</span>
+      </button>
+
+      {aberto && lista.length > 0 && (
+        <ul className="ml-6 mt-2 mb-2 list-disc text-sm">
+          {lista.map((p, i) => (
+            <li key={i}>{p.nome}</li>
+          ))}
+        </ul>
+      )}
     </div>
   )
 }
