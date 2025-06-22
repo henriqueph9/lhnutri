@@ -8,6 +8,8 @@ import {
   getFirestore,
   query,
   orderBy,
+  doc,
+  updateDoc
 } from 'firebase/firestore'
 import { app } from '../firebase'
 import { format, addDays, subDays } from 'date-fns'
@@ -29,7 +31,6 @@ export default function AdminPage() {
     notaBaixaSeq: [],
     inativos7Dias: [],
   })
-  const [usuariosMensagensEnviadas, setUsuariosMensagensEnviadas] = useState({})
 
   const UID_DO_ADMIN = 'GGT2USGNN2QbzhaTaXTlhHZVro12'
   const dataTitulo = format(dataAtual, "EEEE, dd 'de' MMMM", { locale: ptBR })

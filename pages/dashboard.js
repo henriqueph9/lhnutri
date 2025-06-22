@@ -9,9 +9,8 @@ import {
   getDoc,
   query,
   where,
-  orderBy,
   Timestamp,
-  setDoc
+  updateDoc
 } from 'firebase/firestore'
 import { getToken, onMessage } from 'firebase/messaging'
 import app from '../firebase'
@@ -32,7 +31,7 @@ export default function Dashboard() {
   const [relatorios, setRelatorios] = useState([])
   const [userId, setUserId] = useState('')
   const [checklistHoje, setChecklistHoje] = useState(null)
-  const [notificacoes, setNotificacoes] = useState([])
+  const [mensagemHoje, setMensagemHoje] = useState(null)
   const router = useRouter()
   const auth = getAuth(app)
   const db = getFirestore(app)
@@ -68,7 +67,7 @@ export default function Dashboard() {
         buscarChecklists(user.uid)
         buscarChecklistHoje(user.uid)
         buscarRelatorioHoje(user.uid)
-        buscarMensagens(user.uid)
+        buscarMensagemHoje(user.uid)
 
         try {
           const permission = await Notification.requestPermission()
@@ -103,19 +102,21 @@ export default function Dashboard() {
     return () => unsubscribe()
   }, [])
 
-  const buscarMensagens = async (uid) => {
-    const adminUid = 'GGT2USGNN2QbzhaTaXTlhHZVro12'
-    const mensagensRef = collection(db, `mensagens/${adminUid}_${uid}/mensagens`)
-    const q = query(mensagensRef, orderBy('timestamp', 'desc'))
-    const snap = await getDocs(q)
+  const buscarMensagemHoje = async (uid) => {
+    const hoje = format(new Date(), 'yyyy-MM-dd')
+    const mensagensRef = collection(db, `mensagens/GGT2USGNN2QbzhaTaXTlhHZVro12_${uid}/mensagens`)
+    const snap = await getDocs(mensagensRef)
+    const msgsHoje = snap.docs
+      .map(doc => ({ id: doc.id, ...doc.data() }))
+      .filter(m => m.timestamp?.toDate && format(m.timestamp.toDate(), 'yyyy-MM-dd') === hoje && !m.lida)
+    if (msgsHoje.length > 0) setMensagemHoje(msgsHoje[msgsHoje.length - 1])
+  }
 
-    const msgs = snap.docs.map(doc => ({
-      id: doc.id,
-      texto: doc.data().texto,
-      timestamp: doc.data().timestamp?.toDate()
-    }))
-
-    setNotificacoes(msgs)
+  const marcarComoLida = async () => {
+    if (!mensagemHoje) return
+    const ref = doc(db, `mensagens/GGT2USGNN2QbzhaTaXTlhHZVro12_${userId}/mensagens/${mensagemHoje.id}`)
+    await updateDoc(ref, { lida: true })
+    setMensagemHoje(null)
   }
 
   const buscarChecklistHoje = async (uid) => {
@@ -267,6 +268,18 @@ export default function Dashboard() {
 
         <p className="text-sm text-gray-500">{motivacao}</p>
 
+        {mensagemHoje && (
+          <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-900 p-4 rounded shadow">
+            <p className="font-medium">📩 {mensagemHoje.texto}</p>
+            <button
+              onClick={marcarComoLida}
+              className="mt-2 text-sm text-blue-600 underline hover:text-blue-800"
+            >
+              Marcar como lida
+            </button>
+          </div>
+        )}
+
         <div className="space-y-2">
           <Progress title="Dieta" value={progresso.dieta} />
           <Progress title="Treino" value={progresso.treino} />
@@ -277,24 +290,6 @@ export default function Dashboard() {
           <Card icon={ClipboardList} title="Checklist Diário" description="Dieta · Treino · Água" onClick={() => router.push('/checklist')} />
           <Card icon={FileText} title="Relatório da Noite" description="Preencher às 21:00" onClick={() => router.push('/relatorio')} />
           <Card icon={LineChart} title="Evolução" onClick={() => router.push('/evolucao')} />
-        </div>
-
-        <div className="bg-white p-4 rounded shadow mb-4">
-          <h2 className="text-lg font-semibold mb-2">📢 Notificações</h2>
-          {notificacoes.length === 0 ? (
-            <p className="text-gray-500">Nenhuma nova notificação.</p>
-          ) : (
-            <ul className="space-y-2">
-              {notificacoes.map((n) => (
-                <li key={n.id} className="border p-2 rounded">
-                  <p>{n.texto}</p>
-                  <small className="text-gray-400">
-                    {n.timestamp && new Date(n.timestamp).toLocaleString('pt-BR')}
-                  </small>
-                </li>
-              ))}
-            </ul>
-          )}
         </div>
 
         {checklistHoje && (
