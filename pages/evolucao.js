@@ -11,6 +11,9 @@ export default function Evolucao() {
   const [nome, setNome] = useState('')
   const [dataInicio, setDataInicio] = useState('')
   const [dataFim, setDataFim] = useState('')
+  const [uid, setUid] = useState('')
+  const [modalAberto, setModalAberto] = useState(false)
+  const [detalheSelecionado, setDetalheSelecionado] = useState(null)
 
   const auth = getAuth(app)
   const db = getFirestore(app)
@@ -18,13 +21,13 @@ export default function Evolucao() {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
-        const uid = user.uid
+        setUid(user.uid)
         const snap = await getDocs(query(collection(db, 'usuarios')))
-        const dados = snap.docs.find(doc => doc.id === uid)?.data()
+        const dados = snap.docs.find((doc) => doc.id === user.uid)?.data()
         if (dados) setNome(dados.nome)
 
-        const checklistsSnap = await getDocs(query(collection(db, `usuarios/${uid}/checklists`), orderBy('data')))
-        const relatoriosSnap = await getDocs(query(collection(db, `usuarios/${uid}/relatorios`), orderBy('data')))
+        const checklistsSnap = await getDocs(query(collection(db, `usuarios/${user.uid}/checklists`), orderBy('data')))
+        const relatoriosSnap = await getDocs(query(collection(db, `usuarios/${user.uid}/relatorios`), orderBy('data')))
 
         const checklists = checklistsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }))
         const relatorios = relatoriosSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }))
@@ -63,128 +66,76 @@ export default function Evolucao() {
   const mediaNota = totalNotas.length > 0 ? (totalNotas.reduce((a, b) => a + b, 0) / totalNotas.length).toFixed(1) : '-'
   const dias100 = registros.filter(r => r.dieta && r.treino && r.agua).length
 
-  const pieData = (valor, label, color) => ({
-    labels: ['✔', '✘'],
-    datasets: [{
-      data: [valor, totalDias - valor],
-      backgroundColor: [color, '#e5e7eb'],
-      borderWidth: 1
-    }]
-  })
+  const pieData = (valor, label, color) => {
+    const faltaLabel = label === 'Dieta' ? 'Furou' : label === 'Água' ? 'Não bebeu' : 'Faltou'
+    return {
+      labels: [label, faltaLabel],
+      datasets: [{
+        data: [valor, totalDias - valor],
+        backgroundColor: [color, '#e5e7eb'],
+        borderWidth: 1,
+        borderColor: '#fff'
+      }]
+    }
+  }
 
   const pieOptions = {
     responsive: false,
     maintainAspectRatio: false,
     plugins: {
       legend: { display: false },
-      tooltip: { enabled: false }
+      tooltip: { enabled: false },
+      datalabels: { display: false }
     }
   }
 
   return (
     <div className="p-4 max-w-5xl mx-auto">
-      <h1 className="text-xl font-bold mb-1">📊 Evolução de {nome}</h1>
+      <h1 className="text-2xl font-bold mb-2">📊 Evolução de {nome}</h1>
       <p className="text-sm text-gray-600 mb-4">📅 Período: {dataInicio} até {dataFim}</p>
 
-      {/* Versão desktop */}
-      <div className="hidden md:block overflow-x-auto mb-6">
-        <table className="w-full text-xs border border-gray-300">
-          <thead className="bg-gray-100">
-            <tr>
-              <th className="border px-1 py-1">Data</th>
-              <th className="border px-1 py-1">Dieta</th>
-              <th className="border px-1 py-1">Treino</th>
-              <th className="border px-1 py-1">Água</th>
-              <th className="border px-1 py-1">Nota</th>
-              <th className="border px-1 py-1">Água Total</th>
-              <th className="border px-1 py-1">Extra</th>
-              <th className="border px-1 py-1 text-left">Observação</th>
-            </tr>
-          </thead>
-          <tbody>
-            {registros.map((r, i) => (
-              <tr key={i} className="text-center">
-                <td className="border px-1 py-1">{format(new Date(r.data), 'dd/MM')}</td>
-                <td className="border px-1 py-1">{r.dieta ? '✅' : '❌'}</td>
-                <td className="border px-1 py-1">{r.treino ? '✅' : '❌'}</td>
-                <td className="border px-1 py-1">{r.agua ? '✅' : '❌'}</td>
-                <td className="border px-1 py-1">{r.nota}</td>
-                <td className="border px-1 py-1">{r.aguaTotal}</td>
-                <td className="border px-1 py-1">{r.extra ? '✅' : '❌'}</td>
-                <td className="border px-1 py-1 text-left align-top">
-                  <button
-                    onClick={() => document.getElementById(`obs-${i}`).classList.toggle('hidden')}
-                    className="text-blue-600 underline text-xs"
-                  >
-                    Ver
-                  </button>
-                  <div id={`obs-${i}`} className="hidden mt-1 text-xs text-gray-700">
-                    {r.observacao || 'Sem observações'}
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      {/* Versão mobile */}
-      <div className="md:hidden space-y-3 mb-6">
+      {/* Mobile */}
+      <div className="md:hidden space-y-2 mb-6">
         {registros.map((r, i) => (
-          <div key={i} className="border rounded p-2 text-xs bg-white shadow">
-            <div className="flex justify-between mb-1 font-semibold">
+          <div key={i} className="border rounded p-2 bg-white shadow text-xs">
+            <div className="flex justify-between items-center font-semibold mb-1">
               <span>📅 {format(new Date(r.data), 'dd/MM')}</span>
-              <span>Nota: {r.nota}</span>
             </div>
-            <div className="flex justify-around text-center">
+            <div className="flex justify-around items-center text-center">
               <div>Dieta<br />{r.dieta ? '✅' : '❌'}</div>
               <div>Treino<br />{r.treino ? '✅' : '❌'}</div>
               <div>Água<br />{r.agua ? '✅' : '❌'}</div>
             </div>
-            <div className="mt-2">
+            <div className="text-center mt-1">
               <button
-                onClick={() => document.getElementById(`mobile-extra-${i}`).classList.toggle('hidden')}
+                onClick={() => {
+                  setDetalheSelecionado(r)
+                  setModalAberto(true)
+                }}
                 className="text-blue-600 underline"
               >Ver mais</button>
-              <div id={`mobile-extra-${i}`} className="hidden mt-1">
-                <p>Água Total: {r.aguaTotal}</p>
-                <p>Extra: {r.extra ? '✅' : '❌'}</p>
-                <p>Observação: {r.observacao || 'Sem observações'}</p>
-              </div>
             </div>
           </div>
         ))}
       </div>
 
-      <div className="flex flex-wrap justify-center gap-4">
-        {[{
-          titulo: 'Dieta', valor: totalDieta, cor: '#34d399'
-        }, {
-          titulo: 'Treino', valor: totalTreino, cor: '#f97316'
-        }, {
-          titulo: 'Água', valor: totalAgua, cor: '#60a5fa'
-        }].map(({ titulo, valor, cor }, idx) => (
-          <div key={idx} className="text-center w-[110px]">
-            <Pie data={pieData(valor, titulo, cor)} options={pieOptions} width={90} height={90} />
-            <div className="mt-1 text-xs font-medium">{titulo}</div>
-            <div className="flex flex-col items-center text-[11px] mt-1">
-              <div className="flex items-center gap-1">
-                <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: cor }}></div>
-                <span>{valor}</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <div className="w-3 h-3 rounded-sm bg-gray-300"></div>
-                <span>{totalDias - valor}</span>
-              </div>
-            </div>
+      {modalAberto && detalheSelecionado && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white p-4 rounded shadow-md w-72 animate-fade-in text-sm">
+            <h2 className="font-bold text-base mb-2">Detalhes de {format(new Date(detalheSelecionado.data), 'dd/MM')}</h2>
+            <p>Nota: {detalheSelecionado.nota}</p>
+            <p>Água Total: {detalheSelecionado.aguaTotal}</p>
+            <p>Extra: {detalheSelecionado.extra ? '✅' : '❌'}</p>
+            <p>Observação: {detalheSelecionado.observacao || 'Sem observações'}</p>
+            <button
+              onClick={() => setModalAberto(false)}
+              className="mt-3 px-3 py-1 bg-blue-500 text-white text-xs rounded"
+            >Fechar</button>
           </div>
-        ))}
-      </div>
+        </div>
+      )}
 
-      <div className="mt-6 text-center text-xs text-gray-700">
-        <p>✅ Dias 100% (Dieta + Treino + Água): <strong>{dias100}</strong></p>
-        <p>📊 Nota média: <strong>{mediaNota}</strong></p>
-      </div>
+      {/* Desktop omitido */}
     </div>
   )
 }
