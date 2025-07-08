@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
-import { signInWithEmailAndPassword, onAuthStateChanged } from "firebase/auth";
+import { signInWithEmailAndPassword, onAuthStateChanged, sendPasswordResetEmail } from "firebase/auth";
 import { auth } from "../firebase";
 
 export default function LoginPage() {
@@ -46,6 +46,19 @@ export default function LoginPage() {
     }
   };
 
+  const handleResetPassword = async () => {
+    const userEmail = prompt("Digite seu e-mail para redefinir a senha:");
+    if (!userEmail) return;
+
+    try {
+      await sendPasswordResetEmail(auth, userEmail);
+      alert("Email de redefinição enviado com sucesso. Verifique sua caixa de entrada.");
+    } catch (error) {
+      console.error(error);
+      alert("Erro ao enviar email. Verifique se o e-mail está correto.");
+    }
+  };
+
   if (loading) return <p className="text-center mt-20">Carregando...</p>;
 
   return (
@@ -83,6 +96,13 @@ export default function LoginPage() {
         >
           Entrar
         </button>
+
+        <p
+          onClick={handleResetPassword}
+          className="mt-2 text-sm text-center text-blue-500 hover:underline cursor-pointer"
+        >
+          Esqueci minha senha
+        </p>
 
         <p className="mt-4 text-sm text-center text-gray-600">
           Ainda não tem conta?{' '}
