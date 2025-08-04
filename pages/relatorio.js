@@ -8,7 +8,7 @@ import {
   Timestamp
 } from 'firebase/firestore'
 import app from '../firebase'
-import { format } from 'date-fns'
+import { format, addDays, subDays } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 
 export default function Relatorio() {
@@ -33,6 +33,14 @@ export default function Relatorio() {
     return () => unsubscribe()
   }, [])
 
+  const mudarDia = (direcao) => {
+    setDataAtual((prev) =>
+      direcao === 'anterior' ? subDays(prev, 1) : addDays(prev, 1)
+    )
+  }
+
+  const dataFormatada = format(dataAtual, "EEEE, dd 'de' MMMM", { locale: ptBR })
+
   const enviar = async () => {
     if (!userId || !nota || !agua) return alert('Preencha todos os campos')
 
@@ -45,6 +53,7 @@ export default function Relatorio() {
       treinoExtra,
       data: Timestamp.fromDate(dataAtual),
       enviadoEm: Timestamp.fromDate(dataAtual)
+        
     })
 
     setEnviado(true)
@@ -57,6 +66,26 @@ export default function Relatorio() {
   return (
     <div className="min-h-screen bg-[#f9f9f9] p-4">
       <div className="max-w-md mx-auto space-y-6">
+        <div className="flex items-center justify-between mb-2">
+          <button
+            onClick={() => mudarDia('anterior')}
+            className="px-4 py-2 bg-gray-200 rounded-xl font-medium text-gray-800 hover:bg-gray-300"
+          >
+            ← Anterior
+          </button>
+
+          <h1 className="text-base font-bold text-gray-800 text-center">
+            {dataFormatada}
+          </h1>
+
+          <button
+            onClick={() => mudarDia('proximo')}
+            className="px-4 py-2 bg-gray-200 rounded-xl font-medium text-gray-800 hover:bg-gray-300"
+          >
+            Próximo →
+          </button>
+        </div>
+
         <button onClick={() => router.back()} className="text-sm text-gray-500 hover:underline">
           ← Voltar
         </button>
