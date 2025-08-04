@@ -1,15 +1,12 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/router'
-import Link from 'next/link'
 import { getAuth } from 'firebase/auth'
 import {
   collection,
   getDocs,
   getFirestore,
   query,
-  orderBy,
-  doc,
-  updateDoc
+  orderBy
 } from 'firebase/firestore'
 import { app } from '../firebase'
 import { format, addDays, subDays } from 'date-fns'
@@ -22,8 +19,10 @@ export default function AdminPage() {
   const router = useRouter()
 
   const [usuarios, setUsuarios] = useState([])
+  const [usuariosFiltrados, setUsuariosFiltrados] = useState([])
   const [acessoNegado, setAcessoNegado] = useState(false)
   const [dataAtual, setDataAtual] = useState(new Date())
+  const [termoBusca, setTermoBusca] = useState('')
   const [alertas, setAlertas] = useState({
     semDietaDias: [],
     semAguaDias: [],
@@ -34,6 +33,22 @@ export default function AdminPage() {
 
   const UID_DO_ADMIN = 'GGT2USGNN2QbzhaTaXTlhHZVro12'
   const dataTitulo = format(dataAtual, "EEEE, dd 'de' MMMM", { locale: ptBR })
+
+  // Filtra pacientes pelo nome
+  useEffect(() => {
+    if (termoBusca === '') {
+      setUsuariosFiltrados(usuarios)
+    } else {
+      const filtrados = usuarios.filter(user =>
+        user.nome.toLowerCase().includes(termoBusca.toLowerCase())
+      )
+      setUsuariosFiltrados(filtrados)
+    }
+  }, [termoBusca, usuarios])
+
+  const abrirRelatorio = (uid) => {
+    window.open(`/relatorio-geral/${uid}`, '_blank')
+  }
 
   const enviarMensagensTodosAlertas = async () => {
     const grupos = [
@@ -125,6 +140,7 @@ export default function AdminPage() {
     }
 
     setUsuarios(lista)
+    setUsuariosFiltrados(lista)
     setAlertas(novosAlertas)
   }
 
@@ -151,12 +167,25 @@ export default function AdminPage() {
       <h1 className="text-2xl font-bold mb-4">Painel do Administrador</h1>
       <h2 className="text-lg mb-6">{dataTitulo}</h2>
 
-      <div className="flex justify-between mb-4 gap-4">
-        <button className="bg-gray-300 px-4 py-2 rounded hover:bg-gray-400" onClick={() => mudarDia('anterior')}>Dia Anterior</button>
-        <button className="bg-gray-300 px-4 py-2 rounded hover:bg-gray-400" onClick={() => mudarDia('proximo')}>Próximo Dia</button>
-        <button className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 ml-auto" onClick={enviarMensagensTodosAlertas}>
+      <div className="flex justify-between mb-4 gap-4 flex-wrap">
+        <div className="flex gap-4">
+          <button className="bg-gray-300 px-4 py-2 rounded hover:bg-gray-400" onClick={() => mudarDia('anterior')}>Dia Anterior</button>
+          <button className="bg-gray-300 px-4 py-2 rounded hover:bg-gray-400" onClick={() => mudarDia('proximo')}>Próximo Dia</button>
+        </div>
+        <button className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700" onClick={enviarMensagensTodosAlertas}>
           📤 Enviar mensagens automáticas
         </button>
+      </div>
+
+      {/* Barra de pesquisa */}
+      <div className="mb-6">
+        <input
+          type="text"
+          placeholder="🔍 Pesquisar paciente por nome..."
+          className="w-full p-2 border rounded"
+          value={termoBusca}
+          onChange={(e) => setTermoBusca(e.target.value)}
+        />
       </div>
 
       <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mb-6 rounded">
@@ -169,17 +198,16 @@ export default function AdminPage() {
       </div>
 
       <div className="space-y-4">
-        {usuarios.map((user, idx) => (
+        {usuariosFiltrados.map((user, idx) => (
           <div key={idx} className="border rounded p-3 bg-white shadow-sm">
             <div className="font-semibold mb-1 flex justify-between items-center">
               {user.nome}
-              {user.uid && (
-                <Link href={`/relatorio-geral/${user.uid}`}>
-                  <button className="ml-2 text-sm text-blue-600 underline hover:text-blue-800">
-                    📄 Relatório Geral
-                  </button>
-                </Link>
-              )}
+              <button
+                onClick={() => abrirRelatorio(user.uid)}
+                className="ml-2 text-sm text-blue-600 underline hover:text-blue-800"
+              >
+                📄 Relatório Geral
+              </button>
             </div>
             <div className="flex flex-wrap gap-4 text-sm items-center">
               <div>🥗 Dieta: {user.dietaHoje ? '✅' : '❌'}</div>
